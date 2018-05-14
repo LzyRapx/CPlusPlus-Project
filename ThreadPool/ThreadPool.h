@@ -8,8 +8,8 @@
 #include <queue>
 #include <iostream>
 #include <cstdio>
-#include <mutex> // »¥³âËã·¨±ÜÃâ¶à¸öÏß³ÌÍ¬Ê±·ÃÎÊ¹²Ïí×ÊÔ´¡£Õâ»á±ÜÃâÊı¾İ¾ºÕù£¬²¢Ìá¹©Ïß³Ì¼äµÄÍ¬²½Ö§³Ö¡£
-#include <condition_variable> //Ìõ¼ş±äÁ¿ÊÇÔÊĞí¶à¸öÏß³ÌÏà»¥½»Á÷µÄÍ¬²½Ô­Óï¡£ËüÔÊĞíÒ»¶¨Á¿µÄÏß³ÌµÈ´ı£¨¿ÉÒÔ¶¨Ê±£©ÁíÒ»Ïß³ÌµÄÌáĞÑ£¬È»ºóÔÙ¼ÌĞø¡£Ìõ¼ş±äÁ¿Ê¼ÖÕ¹ØÁªµ½Ò»¸ö»¥³â¡£
+#include <mutex> // äº’æ–¥ç®—æ³•é¿å…å¤šä¸ªçº¿ç¨‹åŒæ—¶è®¿é—®å…±äº«èµ„æºã€‚è¿™ä¼šé¿å…æ•°æ®ç«äº‰ï¼Œå¹¶æä¾›çº¿ç¨‹é—´çš„åŒæ­¥æ”¯æŒã€‚
+#include <condition_variable> //æ¡ä»¶å˜é‡æ˜¯å…è®¸å¤šä¸ªçº¿ç¨‹ç›¸äº’äº¤æµçš„åŒæ­¥åŸè¯­ã€‚å®ƒå…è®¸ä¸€å®šé‡çš„çº¿ç¨‹ç­‰å¾…ï¼ˆå¯ä»¥å®šæ—¶ï¼‰å¦ä¸€çº¿ç¨‹çš„æé†’ï¼Œç„¶åå†ç»§ç»­ã€‚æ¡ä»¶å˜é‡å§‹ç»ˆå…³è”åˆ°ä¸€ä¸ªäº’æ–¥ã€‚
 #include <functional>
 #include <future>
 #include <thread>
@@ -22,33 +22,33 @@
 
 using namespace std;
 
-const int max_task = 100; // ×î´óÈÎÎñÊı
+const int max_task = 100; // æœ€å¤§ä»»åŠ¡æ•°
 
 class ThreadPool 
 {
 	
 
 private:
-	// Ïß³ÌÖĞµÄº¯Êı¶ÔÏó
+	// çº¿ç¨‹ä¸­çš„å‡½æ•°å¯¹è±¡
 	using Task = function<void()>;
-	// ´¦ÀíÈÎÎñµÄÏß³Ì³Ø,ÓÃlist±£´æ
+	// å¤„ç†ä»»åŠ¡çš„çº¿ç¨‹æ± ,ç”¨listä¿å­˜
 	list < shared_ptr<thread> > m_thread_pool;
-	// Í¬²½¶ÓÁĞ
+	// åŒæ­¥é˜Ÿåˆ—
 	Syncqueue<Task> m_queue;
-	// ÊÇ·ñÍ£Ö¹µÄ±êÖ¾
+	// æ˜¯å¦åœæ­¢çš„æ ‡å¿—
 	atomic_bool m_running;
-	// call_onceµÄ²ÎÊı
+	// call_onceçš„å‚æ•°
 	once_flag m_flag;
 
 private:
-	//Ïß³Ì³Ø¿ªÊ¼£¬Ô¤ÏÈ´´½¨°üº¬numThreads ¸öÏß³ÌµÄÏß³Ì³Ø
+	//çº¿ç¨‹æ± å¼€å§‹ï¼Œé¢„å…ˆåˆ›å»ºåŒ…å«numThreads ä¸ªçº¿ç¨‹çš„çº¿ç¨‹æ± 
 	void Start(int num_thread)
 	{
 		m_running = true;
 
-		// ´´½¨Ïß³Ì³Ø
+		// åˆ›å»ºçº¿ç¨‹æ± 
 		for (int i = 0; i < num_thread; i++) {
-			//ÖÇÄÜÖ¸Õë¹ÜÀí£¬¸ø³öÏß³Ìº¯Êı&ThreadPool::RunInThread ºÍ¶ÔÓ¦²ÎÊıthis
+			//æ™ºèƒ½æŒ‡é’ˆç®¡ç†ï¼Œç»™å‡ºçº¿ç¨‹å‡½æ•°&ThreadPool::RunInThread å’Œå¯¹åº”å‚æ•°this
 			m_thread_pool.push_back(make_shared<thread>(&ThreadPool::RunInThread, this));
 		}
 	}
@@ -65,10 +65,10 @@ private:
 			}
 		}
 	}
-	//ÖÕÖ¹Ïß³Ì³Ø£¬Ïú»Ù³ØÖĞµÄËùÓĞÏß³Ì
+	//ç»ˆæ­¢çº¿ç¨‹æ± ï¼Œé”€æ¯æ± ä¸­çš„æ‰€æœ‰çº¿ç¨‹
 	void stop_thread_pool()
 	{
-		m_queue.Stop(); // ÈÃÍ¬²½¶ÓÁĞÖĞµÄÏß³ÌÖÕÖ¹
+		m_queue.Stop(); // è®©åŒæ­¥é˜Ÿåˆ—ä¸­çš„çº¿ç¨‹ç»ˆæ­¢
 		m_running = false;
 		for (auto thread : m_thread_pool)
 		{
@@ -77,30 +77,30 @@ private:
 		m_thread_pool.clear();
 	}
 public:
-	//ÈÎÎñÀàĞÍ£¬ÕâÀïÊÇÎŞ²ÎÊıÎŞ·µ»ØÖµ,¿ÉÒÔĞŞ¸ÄÎªÈÎºÎÀàĞÍµÄ·¶ĞÍº¯ÊıÄ£°å
+	//ä»»åŠ¡ç±»å‹ï¼Œè¿™é‡Œæ˜¯æ— å‚æ•°æ— è¿”å›å€¼,å¯ä»¥ä¿®æ”¹ä¸ºä»»ä½•ç±»å‹çš„èŒƒå‹å‡½æ•°æ¨¡æ¿
 	
 
-	// hardware_concurrency CPUºËÊı µ±Ä¬ÈÏÏß³ÌÊı
+	// hardware_concurrency CPUæ ¸æ•° å½“é»˜è®¤çº¿ç¨‹æ•°
 	ThreadPool(int num_thread = thread::hardware_concurrency()) : m_queue(max_task)
 	{
-		Start(num_thread); // ¿ªÊ¼
+		Start(num_thread); // å¼€å§‹
 	}
-	// Îö¹¹º¯Êı
+	// ææ„å‡½æ•°
 	~ThreadPool()
 	{
-		Stop(); // Èç¹ûÃ»ÓĞÍ£Ö¹Ê±£¬ÔòÖ÷¶¯ÖÕÖ¹Ïß³Ì³Ø
+		Stop(); // å¦‚æœæ²¡æœ‰åœæ­¢æ—¶ï¼Œåˆ™ä¸»åŠ¨ç»ˆæ­¢çº¿ç¨‹æ± 
 	}
 
-	//ÖÕÖ¹Ïß³Ì³Ø,Ïú»Ù³ØÖĞËùÓĞÏß³Ì
+	//ç»ˆæ­¢çº¿ç¨‹æ± ,é”€æ¯æ± ä¸­æ‰€æœ‰çº¿ç¨‹
 	void Stop()
 	{
-		//±£Ö¤¶àÏß³ÌÇé¿öÏÂÖ»µ÷ÓÃÒ»´Îstop_Thread_pool
+		//ä¿è¯å¤šçº¿ç¨‹æƒ…å†µä¸‹åªè°ƒç”¨ä¸€æ¬¡stop_Thread_pool
 		call_once(m_flag, [this] { stop_thread_pool(); });
 	}
 
-	//Í¬²½·şÎñ²ã£ºÍùÍ¬²½¶ÓÁĞÖĞÌí¼ÓÈÎÎñ,Á½¸ö°æ±¾
-	// Í¬²½·şÎñ²ã£ºÍùÍ¬²½¶ÓÁĞÖĞÌí¼ÓÈÎÎñ£¬ÖØÔØÒ»ÏÂ
-	// ×óÖµÒıÓÃ
+	// åŒæ­¥æœåŠ¡å±‚ï¼šå¾€åŒæ­¥é˜Ÿåˆ—ä¸­æ·»åŠ ä»»åŠ¡,ä¸¤ä¸ªç‰ˆæœ¬
+	// åŒæ­¥æœåŠ¡å±‚ï¼šå¾€åŒæ­¥é˜Ÿåˆ—ä¸­æ·»åŠ ä»»åŠ¡ï¼Œé‡è½½ä¸€ä¸‹
+	// å·¦å€¼å¼•ç”¨
 	void add_task(const Task& task) {
 		m_queue.add(task);
 	}
